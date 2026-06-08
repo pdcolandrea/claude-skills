@@ -1,0 +1,22 @@
+{
+  "name": "pdcolandrea-skills",
+  "owner": {
+    "name": "Paul Colandrea",
+    "email": "colandreapaul@gmail.com"
+  },
+  "metadata": {
+    "description": "Paul Colandrea's Claude Code skills",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "codex-review",
+      "description": "Automated codex review loop on the current branch's PR — request a review, wait for codex, fix the findings, re-request until clean. Drives the chatgpt-codex-connector GitHub App so you don't have to babysit it.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/codex-review"
+      ]
+    }
+  ]
+}
