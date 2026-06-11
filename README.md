@@ -10,6 +10,7 @@ In a Claude Code session:
 ```
 /plugin marketplace add pdcolandrea/claude-skills
 /plugin install codex-review@pdcolandrea-skills
+/plugin install screenshot-pr@pdcolandrea-skills
 ```
 
 Or from the shell:
@@ -17,6 +18,7 @@ Or from the shell:
 ```bash
 claude plugin marketplace add pdcolandrea/claude-skills
 claude plugin install codex-review@pdcolandrea-skills
+claude plugin install screenshot-pr@pdcolandrea-skills
 ```
 
 Run `/plugin` with no args to browse and toggle installed skills.
@@ -47,6 +49,33 @@ and state lives under `.git/`, so you can run it across many repos at once. See
 [`skills/codex-review/SKILL.md`](skills/codex-review/SKILL.md) for the full
 contract, env vars (`CODEX_POLL_INTERVAL`, `CODEX_POLL_MAX`,
 `CODEX_REVIEW_WEBHOOK`), and webhook diagnostics.
+
+### `screenshot-pr`
+
+Captures **before + after** screenshots of the visual changes in the current
+branch's PR (desktop + mobile-web), uploads them to GitHub as `user-attachments`,
+and posts a single **updating** bot comment. It's agent-driven — it explores the
+live app with Playwright MCP to *find* the changed UI on screen, not just hit a
+route — so a polish PR actually shows the component that changed.
+
+Trigger it by asking Claude to "attach screenshots" / "show what changed
+visually", or run `/screenshot-pr` directly after `gh pr create`.
+
+**Requirements**
+
+- A running web dev server (default `http://localhost:3000`).
+- **Playwright MCP** connected (the capture engine).
+- `gh` CLI authenticated, plus the `gh image` extension for the upload
+  (`gh extension install drogers0/gh-image`) — URLs inherit repo visibility, so
+  private repos stay private.
+- `node` for the bundled helpers.
+
+It's **repo-agnostic**: every repo-specific value lives in an optional
+`.screenshot-pr.json` (dev-server URL, routes, source globs, dynamic-segment
+fills, viewports). With no config it reads `localhost:3000` and auto-derives
+routes from the diff for Next.js repos. See
+[`skills/screenshot-pr/SKILL.md`](skills/screenshot-pr/SKILL.md) and the
+annotated [`references/screenshot-pr.example.json`](skills/screenshot-pr/references/screenshot-pr.example.json).
 
 ## Adding a skill to this marketplace
 

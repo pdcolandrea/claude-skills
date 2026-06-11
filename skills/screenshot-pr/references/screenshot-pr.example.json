@@ -1,0 +1,21 @@
+{
+  "$comment": "Copy to .screenshot-pr.json at your repo root. Every key is OPTIONAL — delete the ones you don't need. This file documents all of them.",
+
+  "webUrl": "http://localhost:3000",
+  "apiUrl": null,
+
+  "routes": ["/", "/pricing", "/blog/[slug]"],
+  "dynamicParams": { "[slug]": "hello-world" },
+
+  "viewports": {
+    "desktop": [1280, 900],
+    "mobile": [390, 844]
+  },
+
+  "sourceGlobs": ["apps/web/**", "packages/ui/**"],
+  "excludeGlobs": ["apps/web/app/api/**"],
+
+  "comparison": "both",
+  "baseBranch": null,
+  "maxRoutes": 5
+}

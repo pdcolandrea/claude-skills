@@ -17,6 +17,15 @@
       "skills": [
         "./skills/codex-review"
       ]
+    },
+    {
+      "name": "screenshot-pr",
+      "description": "Captures before+after screenshots of the visual changes in the current PR (desktop + mobile-web) with Playwright MCP, uploads them to GitHub as user-attachments, and posts/updates a single bot comment. Repo-agnostic via an optional .screenshot-pr.json.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/screenshot-pr"
+      ]
     }
   ]
 }
