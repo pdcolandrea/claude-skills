@@ -96,10 +96,11 @@ emits one status line before the verdict:
   - `another-agent-on-this-machine-is-setting-up-webhooks-for-this-repo` →
     **expected & harmless** — a concurrent review on the same repo won the setup
     race; this one just polls. No action needed.
-  - `forwarder-hook-already-on-repo …` → another review elsewhere holds the repo's
-    single webhook slot, **or** a hook leaked from a crashed run. If no other
-    review is running, clean the leak: `gh api repos/<owner>/<repo>/hooks` then
-    `gh api -X DELETE repos/<owner>/<repo>/hooks/<id>` for the `webhook-forwarder` one.
+  - `forwarder-hook-already-on-repo …` → a live concurrent review on **another
+    machine** holds the repo's single webhook slot (its hook is *active*). This
+    one polls; it self-clears when that review exits. **No action needed** —
+    dead/leaked hooks (active==false) are now pruned automatically on startup, so
+    a reported one is genuinely live.
   - `listener-failed-port-…` → set `CODEX_WEBHOOK_PORT` to a free port.
 
 The fallback is seamless — a `WEBHOOK=FAILED` line never changes the verdict, it

@@ -84,6 +84,22 @@ forwarder_hook_ids() {
   gh api "repos/{owner}/{repo}/hooks" \
     --jq '.[] | select(.config.url // "" | test("webhook-forwarder")) | .id' 2>/dev/null || true
 }
+# Forwarder hooks that are DEAD: active==false. A live `gh webhook forward`
+# keeps its hook active (forwarding requires it to receive deliveries); GitHub
+# auto-disables a hook after repeated failed deliveries to a listener that went
+# away — i.e. a leak from a crashed run. active==false therefore reliably
+# distinguishes a leak from a live sibling on another machine (which stays
+# active and must NOT be touched), so these are safe to delete on sight.
+stale_forwarder_hook_ids() {
+  gh api "repos/{owner}/{repo}/hooks" \
+    --jq '.[] | select(.config.url // "" | test("webhook-forwarder")) | select(.active==false) | .id' 2>/dev/null || true
+}
+prune_stale_forwarder_hooks() {
+  local h
+  for h in $(stale_forwarder_hook_ids); do
+    gh api -X DELETE "repos/{owner}/{repo}/hooks/$h" >/dev/null 2>&1 || true
+  done
+}
 cleanup_webhook() {
   if [ -n "$FWD_PID" ]; then
     # SIGINT (not TERM): gh webhook forward deletes its temp repo hook on interrupt.
@@ -143,11 +159,17 @@ run_webhook() {
     return 1
   fi
 
-  # With the lock held, check for an existing forwarder hook: a live sibling on a
-  # DIFFERENT machine, or a hook leaked by a crashed run. Either way we can't use
-  # webhooks (the create would 422), and we must not touch that hook.
+  # Self-heal first: drop any DEAD forwarder hooks (active==false) leaked by a
+  # crashed run, before they trip the one-per-repo pre-check below. A live
+  # sibling's hook stays active, so this only ever removes genuine leaks — no
+  # manual `gh api -X DELETE` needed any more.
+  prune_stale_forwarder_hooks
+
+  # With the lock held (and dead leaks pruned), any forwarder hook still present
+  # is ACTIVE — a live sibling on a DIFFERENT machine. We can't use webhooks (the
+  # create would 422) and must not touch its hook, so fall back to polling.
   if [ -n "$(forwarder_hook_ids | tr '\n' ' ' | tr -d ' ')" ]; then
-    REASON="forwarder-hook-already-on-repo (concurrent review elsewhere, or leaked hook — list/clean: gh api repos/$repo/hooks)"
+    REASON="forwarder-hook-already-on-repo (active hook — concurrent review on another machine; will self-clear when it exits)"
     cleanup_webhook; return 1
   fi
 
