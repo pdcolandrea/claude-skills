@@ -11,6 +11,7 @@ In a Claude Code session:
 /plugin marketplace add pdcolandrea/claude-skills
 /plugin install codex-review@pdcolandrea-skills
 /plugin install screenshot-pr@pdcolandrea-skills
+/plugin install aso-appstore-screenshots@pdcolandrea-skills
 ```
 
 Or from the shell:
@@ -19,6 +20,7 @@ Or from the shell:
 claude plugin marketplace add pdcolandrea/claude-skills
 claude plugin install codex-review@pdcolandrea-skills
 claude plugin install screenshot-pr@pdcolandrea-skills
+claude plugin install aso-appstore-screenshots@pdcolandrea-skills
 ```
 
 Run `/plugin` with no args to browse and toggle installed skills.
@@ -76,6 +78,39 @@ fills, viewports). With no config it reads `localhost:3000` and auto-derives
 routes from the diff for Next.js repos. See
 [`skills/screenshot-pr/SKILL.md`](skills/screenshot-pr/SKILL.md) and the
 annotated [`references/screenshot-pr.example.json`](skills/screenshot-pr/references/screenshot-pr.example.json).
+
+### `aso-appstore-screenshots`
+
+Generates high-converting App Store screenshots for an iOS app. It analyzes the
+app's codebase to discover the 3–5 core benefits that drive downloads, reviews and
+pairs your simulator screenshots with each benefit, then produces polished, ASO-
+optimized images. Generation is two-stage: a deterministic Pillow **scaffold**
+(exact text, device frame, screenshot placement) is enhanced by **Nano Banana Pro**
+for a photorealistic result, keeping the whole set visually consistent.
+
+Trigger it by asking Claude to "make my App Store screenshots", or run
+`/aso-appstore-screenshots` from inside your app's project.
+
+**Requirements**
+
+- `python3` with **Pillow** (`pip install Pillow`).
+- **SF Pro Display** (Black + Regular) fonts installed — on macOS, from
+  [Apple's developer fonts](https://developer.apple.com/fonts/) at `/Library/Fonts/`.
+- **Gemini MCP** connected for the enhancement stage (provides `generate_image` /
+  `edit_image`). Register it with a [Google AI key](https://aistudio.google.com/apikey):
+
+  ```bash
+  claude mcp add gemini -s user -e GEMINI_API_KEY=your-key -- npx -y @houtini/gemini-mcp
+  ```
+
+Progress (benefits, pairings, brand colour, generation state) is saved to memory so
+you can resume across sessions. See
+[`skills/aso-appstore-screenshots/SKILL.md`](skills/aso-appstore-screenshots/SKILL.md).
+
+> **Credit:** adapted from
+> [adamlyttleapps/claude-skill-aso-appstore-screenshots](https://github.com/adamlyttleapps/claude-skill-aso-appstore-screenshots)
+> (MIT). The original license is retained in
+> [`skills/aso-appstore-screenshots/LICENSE`](skills/aso-appstore-screenshots/LICENSE).
 
 ## Adding a skill to this marketplace
 
