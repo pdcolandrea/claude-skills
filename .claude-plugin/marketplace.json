@@ -26,6 +26,15 @@
       "skills": [
         "./skills/screenshot-pr"
       ]
+    },
+    {
+      "name": "aso-appstore-screenshots",
+      "description": "Generate high-converting App Store screenshots — analyzes your app's codebase to discover core benefits, pairs them with simulator screenshots, then builds ASO-optimized images via a deterministic Pillow scaffold enhanced by Nano Banana Pro (Gemini MCP). Adapted from adamlyttleapps/claude-skill-aso-appstore-screenshots.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/aso-appstore-screenshots"
+      ]
     }
   ]
 }
