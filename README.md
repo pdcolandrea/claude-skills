@@ -12,6 +12,7 @@ In a Claude Code session:
 /plugin install codex-review@pdcolandrea-skills
 /plugin install screenshot-pr@pdcolandrea-skills
 /plugin install aso-appstore-screenshots@pdcolandrea-skills
+/plugin install orchestrator@pdcolandrea-skills
 ```
 
 Or from the shell:
@@ -21,6 +22,7 @@ claude plugin marketplace add pdcolandrea/claude-skills
 claude plugin install codex-review@pdcolandrea-skills
 claude plugin install screenshot-pr@pdcolandrea-skills
 claude plugin install aso-appstore-screenshots@pdcolandrea-skills
+claude plugin install orchestrator@pdcolandrea-skills
 ```
 
 Run `/plugin` with no args to browse and toggle installed skills.
@@ -111,6 +113,25 @@ you can resume across sessions. See
 > [adamlyttleapps/claude-skill-aso-appstore-screenshots](https://github.com/adamlyttleapps/claude-skill-aso-appstore-screenshots)
 > (MIT). The original license is retained in
 > [`skills/aso-appstore-screenshots/LICENSE`](skills/aso-appstore-screenshots/LICENSE).
+
+### `orchestrator`
+
+Picks **which model runs each delegated task** — a subagent, a parallel fan-out,
+or a Workflow stage — instead of running everything on one model. It scores the
+work on **cost / intelligence / taste** and routes to the cheapest model that
+clears the bar: bulk/mechanical work to **gpt-5.5** (via the codex plugin),
+user-facing UI/copy/API design to **fable-5** or **opus-4.8**, reviews to a
+fable/opus pass plus an independent gpt-5.5 read. It carries standing permission
+to escalate to a smarter model when the output misses the bar.
+
+Trigger it by asking Claude which model should do a task, to "spin up agents" /
+"fan out" / "run a workflow", or any time work is being delegated. See
+[`skills/orchestrator/SKILL.md`](skills/orchestrator/SKILL.md).
+
+> **Credit:** the model-routing rubric — scoring delegatable work on cost,
+> intelligence, and taste, and routing each task to the cheapest model that clears
+> the bar — is adapted from Theo Browne
+> ([@t3dotgg](https://github.com/t3dotgg)).
 
 ## Adding a skill to this marketplace
 
