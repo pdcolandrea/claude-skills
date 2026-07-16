@@ -1,14 +1,87 @@
 ---
 name: codex-review
-description: Runs an automated codex review loop on the current branch's PR — requests a review, waits for codex to reply, fixes the findings, and re-requests until codex reports no issues. Use when the user wants codex to review a PR, says "ask codex to review", "loop codex on this", "get a clean codex pass", or types "/codex-review".
+description: Runs an automated codex review loop — locally via the codex CLI (no PR needed), or on the current branch's PR via the GitHub App — fixing findings and re-reviewing until codex reports no issues. Use when the user wants codex to review code or a PR, says "ask codex to review", "codex review this locally", "loop codex on this", "get a clean codex pass", or types "/codex-review".
 user-invokable: true
 ---
 
 # codex-review
 
-Drives the full codex review cycle on the current branch's PR so the user doesn't
-have to babysit it: **request → wait → fix → re-request**, looping until codex
-comes back clean.
+Drives a full codex review cycle so the user doesn't have to babysit it:
+**review → fix → re-review**, looping until codex comes back clean.
+
+> **Script paths.** Commands below are written relative to this skill's directory
+> (`scripts/…`). Run them from the skill root, or prefix with the skill's absolute
+> path if your harness invokes from elsewhere.
+
+## Two modes — pick before starting
+
+| | **Local** (codex CLI) | **GitHub** (App on the PR) |
+|---|---|---|
+| Needs | `codex` on PATH | open PR + `gh` + App installed |
+| Reviews | working tree (any state) | the *pushed* HEAD |
+| Latency/round | ~3–8 min | ~3–6 min + push round-trips |
+| Leaves a trace | none (transcript only) | PR review + inline threads |
+| Label ledger | ✓ asserted, points at a posted summary | ✓ derived from bot comments |
+
+Choose **local** when: there's no PR yet, the user says "locally"/"uncommitted",
+the work is mid-flight, or GitHub round-trips are unwanted. Choose **GitHub**
+when the user wants the review *on the PR* (threads, ledger, labels) — it's the
+mode that makes the review durable and citable. When a PR exists and the user
+didn't specify, either is fine; prefer GitHub for merge-gating passes, local for
+fast iteration, and say which you picked. The two loops share the fix policy and
+the `VERDICT=` contract.
+
+## Local mode (codex CLI)
+
+### Step L1 — run the review
+
+Run **in the background** (it takes minutes):
+
+```bash
+scripts/local-review.sh                 # branch vs auto-detected base
+scripts/local-review.sh --base master   # explicit base
+scripts/local-review.sh --uncommitted   # working-tree changes only
+```
+
+Extra args after the flags become custom review instructions (e.g. a focus
+area). Output is the review body; **the last line is always the verdict**:
+
+- `VERDICT=CLEAN` → **Done** (below).
+- `VERDICT=FINDINGS count=N` → Step L2. Findings look like
+  `- [P1] title — path:lines` with a body underneath.
+- `VERDICT=ERROR …` → read the printed tail of
+  `$(git rev-parse --git-dir)/codex-local-review.log`. An instant exit-1 with a
+  sandbox complaint usually means the shell it ran in blocks codex's own
+  sandbox — re-run outside the sandbox. Report unresolvable errors to the user.
+
+### Step L2 — fix and loop
+
+Same policy as the GitHub loop: **P1/P2** fix unless clearly false-positive;
+**P3** judgment; deliberate skips get noted, and if *every* remaining finding is
+a deliberate skip, stop and surface them instead of looping. Run the repo's
+verify gate, commit, then **re-run Step L1**. Cap at **6 iterations**.
+
+### Done (local)
+
+Report iterations and what changed each round. A local review leaves no GitHub
+trace on its own, so **if a PR exists**, make it durable and citable:
+
+1. Post the findings-and-fixes summary as a PR comment (`gh pr comment`) so the
+   review is readable on the PR — the label must point at something a human can
+   open.
+2. Then assert the reviewer label (skip silently if the repo has no labeller):
+
+   ```bash
+   [ -x scripts/pr-review-label.sh ] && scripts/pr-review-label.sh --model codex
+   ```
+
+`--model codex` is **required** here. The plain labeller derives `codex-review`
+from the *bot's* PR comments, but a local run posts under your identity, not the
+bot's — so the label has to be asserted, and it points at the summary comment
+from step 1. Never assert it without posting that comment first: a label whose
+review nobody can read is worse than no label.
+
+## GitHub mode (App on the PR)
 
 Codex is the `chatgpt-codex-connector[bot]` GitHub App on the repo. It is
 triggered by an `@codex review` PR comment and replies one of two ways:
@@ -19,26 +92,22 @@ triggered by an `@codex review` PR comment and replies one of two ways:
 
 Codex typically replies in **~3–6 minutes**, so polling every 2 minutes is right.
 
-> **Script paths.** Commands below are written relative to this skill's directory
-> (`scripts/…`). Run them from the skill root, or prefix with the skill's absolute
-> path if your harness invokes from elsewhere.
-
-## When to invoke
+### When to invoke
 
 - The user asks to get a codex review, "loop codex", or wants a clean pass before merge.
 - After pushing a branch with an open PR.
 - Re-runs are safe.
 
-**Don't** invoke when there's no PR for the branch yet (open one first), or when the
-user only wants a one-off comment posted with no follow-through (just
-`gh pr comment` then).
+**Don't** use this mode when there's no PR for the branch yet (use **local
+mode**, or open a PR first), or when the user only wants a one-off comment
+posted with no follow-through (just `gh pr comment` then).
 
-## Inputs
+### Inputs
 
 None required — infers the PR from the current branch. Optional: a PR number as
 the first arg to `request-review.sh` if not on the PR's branch.
 
-## Required environment
+### Required environment
 
 - `gh` CLI authenticated (`gh auth status`).
 - Codex GitHub App (`chatgpt-codex-connector[bot]`) installed on the repo.
@@ -48,12 +117,12 @@ the first arg to `request-review.sh` if not on the PR's branch.
   optional — without them the poller prints `WEBHOOK=FAILED reason=…` and falls
   back to plain polling, which works the same, just with more latency.
 
-## The loop
+### The loop
 
 Track progress with TaskCreate so each iteration is visible. Cap at **6
 iterations** to avoid spinning; if still not clean, stop and report.
 
-### Step 1 — Request a review
+#### Step 1 — Request a review
 
 ```bash
 scripts/request-review.sh
@@ -63,7 +132,7 @@ This refuses if the tree is dirty or has unpushed commits (codex reviews the
 *pushed* HEAD). Commit and push first if it complains. It posts `@codex review`
 and writes the request marker to `.git/codex-loop.json`.
 
-### Step 2 — Wait for codex
+#### Step 2 — Wait for codex
 
 Run the poller **in the background** (`run_in_background: true`) so the harness
 wakes you the instant codex replies — don't foreground-sleep or hand-poll:
@@ -117,7 +186,7 @@ only one gets webhooks; the rest detect this (via a machine-local setup lock or
 the hook pre-check) and cleanly fall back to polling. No collisions, no leaked
 hooks under normal exit.
 
-### Step 3 — Read and fix the findings
+#### Step 3 — Read and fix the findings
 
 ```bash
 scripts/findings.sh
@@ -154,11 +223,21 @@ can reference the fix commit sha.
 
 Then **go back to Step 1** to request a fresh review of the new HEAD.
 
-### Done
+#### Done (GitHub)
 
-When the verdict is `CLEAN`, report to the user: number of iterations, a one-line
-summary of what was fixed each round, and the PR link. Leave `.git/codex-loop.json`
-in place (it's inside `.git`, never committed).
+When the verdict is `CLEAN`, tag the PR with the reviewer if the repo has a
+labeller (not all do — skip silently when absent):
+
+```bash
+[ -x scripts/pr-review-label.sh ] && scripts/pr-review-label.sh
+```
+
+It derives `codex-review` from the PR's own comment authorship, so it's safe to
+re-run and correct even if this loop ran more than once.
+
+Then report to the user: number of iterations, a one-line summary of what was
+fixed each round, and the PR link. Leave `.git/codex-loop.json` in place (it's
+inside `.git`, never committed).
 
 ## Notes
 
