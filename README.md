@@ -122,7 +122,7 @@ Picks **which model runs each delegated task** — a subagent, a parallel fan-ou
 or a Workflow stage — instead of running everything on one model. It scores the
 work on **cost / intelligence / taste** and routes to the cheapest model that
 clears the bar: bulk/mechanical work to **gpt-5.5** (via the codex plugin),
-user-facing UI/copy/API design to **fable-5** or **opus-4.8**, reviews to a
+user-facing UI/copy/API design to **fable-5** or **opus-5**, reviews to a
 fable/opus pass plus an independent gpt-5.5 read. It carries standing permission
 to escalate to a smarter model when the output misses the bar.
 

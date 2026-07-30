@@ -48,7 +48,7 @@
     },
     {
       "name": "orchestrator",
-      "description": "Chooses which model runs a delegated task — subagent, parallel fan-out, or Workflow stage — by scoring the work on cost, intelligence, and taste, then routing to the cheapest model that clears the bar (gpt-5.5 via the codex plugin; fable-5 / opus-4.8 / sonnet-5 via the Agent/Workflow model param). Model-routing rubric adapted from Theo Browne (@t3dotgg).",
+      "description": "Chooses which model runs a delegated task — subagent, parallel fan-out, or Workflow stage — by scoring the work on cost, intelligence, and taste, then routing to the cheapest model that clears the bar (gpt-5.5 via the codex plugin; fable-5 / opus-5 / sonnet-5 via the Agent/Workflow model param). Model-routing rubric adapted from Theo Browne (@t3dotgg).",
       "source": "./",
       "strict": false,
       "skills": [

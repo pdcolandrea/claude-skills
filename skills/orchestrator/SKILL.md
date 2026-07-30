@@ -16,7 +16,7 @@ below, then invoke via the mechanics section.
 | gpt-5.6-sol | 8    | 9            | 7     | codex plugin — **default** model   |
 | gpt-5.5     | 9    | 8            | 5     | codex plugin (cheaper alt; below)  |
 | fable-5     | 2    | 9            | 9     | `model: "fable"`                   |
-| opus-4.8    | 4    | 7            | 8     | `model: "opus"`                    |
+| opus-5      | 4    | 7            | 8     | `model: "opus"`                    |
 | sonnet-5    | 5    | 5            | 7     | `model: "sonnet"`                  |
 
 **Cost = what I actually pay** (OpenAI's limits are generous, so the codex models
@@ -36,10 +36,10 @@ pass.
 | The task is…                                             | Send it to                                              |
 | -------------------------------------------------------- | ------------------------------------------------------- |
 | Bulk / mechanical / clear-spec impl, migrations, data    | **gpt-5.6-sol** — the default codex workhorse (~80% of delegated bulk); token-efficient, smart enough |
-| User-facing: UI, UX, copy, API design (needs taste ≥ 7)  | **fable-5** (best taste) or **opus-4.8**; **gpt-5.6-sol** now clears the gate (taste 7) as the cheaper option for lighter UI/copy |
+| User-facing: UI, UX, copy, API design (needs taste ≥ 7)  | **fable-5** (best taste) or **opus-5**; **gpt-5.6-sol** now clears the gate (taste 7) as the cheaper option for lighter UI/copy |
 | Hardest unsupervised reasoning (fuzzy spec, deep debug)  | **fable-5** or **gpt-5.6-sol** (both intel 9); sol is the default codex pick |
-| Review of a plan or implementation                       | **fable-5** or **opus-4.8**; add a **codex** pass (sol by default, or gpt-5.5 as a cheaper 2nd voice) for an independent 2nd read |
-| Anything else / catch-all                                | **opus-4.8**                                            |
+| Review of a plan or implementation                       | **fable-5** or **opus-5**; add a **codex** pass (sol by default, or gpt-5.5 as a cheaper 2nd voice) for an independent 2nd read |
+| Anything else / catch-all                                | **opus-5**                                              |
 
 ## Decision rules
 
@@ -56,7 +56,7 @@ pass.
 
 ## Invocation mechanics
 
-**Claude models (fable-5, opus-4.8, sonnet-5)** — pass `model` on the call:
+**Claude models (fable-5, opus-5, sonnet-5)** — pass `model` on the call:
 
 - `Agent` tool: `subagent_type` + `model: "fable" | "opus" | "sonnet"`.
 - `Workflow`: `agent(prompt, { model: "fable", ... })`, or `model` on a phase.
@@ -78,7 +78,7 @@ command (or flip the config default) to override for that call.
   `codex:codex-rescue` agent type or the plugin's native slash commands /
   `codex-cli-runtime` skills — never raw terminal wrappers.
 - **Fallback:** if the codex CLI/plugin isn't installed in this project, substitute
-  a **fable-5** (or **opus-4.8**) agent for the gpt-5.5 slot and note the swap.
+  a **fable-5** (or **opus-5**) agent for the gpt-5.5 slot and note the swap.
 
 ## Closed-loop QA (optional)
 
@@ -88,7 +88,7 @@ assumptions don't reach the main session unvetted.
 
 ## Worked example — a 3-stage feature
 
-1. **Plan** the change → **opus-4.8** (or fable-5) subagent.
+1. **Plan** the change → **opus-5** (or fable-5) subagent.
 2. **Implement** the clear-spec pieces in parallel → **gpt-5.6-sol** (the default
    codex pick) via `/codex:rescue` or `codex:codex-rescue` agents; drop to
    **gpt-5.5** for a cheaper run on the simplest pieces.
