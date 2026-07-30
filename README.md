@@ -121,9 +121,9 @@ you can resume across sessions. See
 Picks **which model runs each delegated task** — a subagent, a parallel fan-out,
 or a Workflow stage — instead of running everything on one model. It scores the
 work on **cost / intelligence / taste** and routes to the cheapest model that
-clears the bar: bulk/mechanical work to **gpt-5.5** (via the codex plugin),
+clears the bar: bulk/mechanical work to **gpt-5.6-sol** (via the codex plugin),
 user-facing UI/copy/API design to **fable-5** or **opus-5**, reviews to a
-fable/opus pass plus an independent gpt-5.5 read. It carries standing permission
+fable/opus pass plus an independent codex read. It carries standing permission
 to escalate to a smarter model when the output misses the bar.
 
 Trigger it by asking Claude which model should do a task, to "spin up agents" /

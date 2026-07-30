@@ -13,32 +13,28 @@ below, then invoke via the mechanics section.
 
 | Model       | Cost | Intelligence | Taste | Invoke as                          |
 | ----------- | ---- | ------------ | ----- | ---------------------------------- |
-| gpt-5.6-sol | 8    | 9            | 7     | codex plugin — **default** model   |
-| gpt-5.5     | 9    | 8            | 5     | codex plugin (cheaper alt; below)  |
+| gpt-5.6-sol | 8    | 9            | 7     | codex plugin — the codex model     |
 | fable-5     | 2    | 9            | 9     | `model: "fable"`                   |
 | opus-5      | 4    | 7            | 8     | `model: "opus"`                    |
 | sonnet-5    | 5    | 5            | 7     | `model: "sonnet"`                  |
 
-**Cost = what I actually pay** (OpenAI's limits are generous, so the codex models
-are effectively cheapest — **gpt-5.5** is a hair cheaper than **gpt-5.6-sol**
-("sol"), which costs a small premium). Never use Haiku.
+**Cost = what I actually pay** (OpenAI's limits are generous, so the codex model
+is effectively the cheapest thing on the board). Never use Haiku.
 
-**Two codex models, split ~80/20.** `gpt-5.6-sol` is the everyday codex workhorse
-and default codex pick (the default `model` in `~/.codex/config.toml`) — smarter
-(intel 9) and more tasteful (taste 7, clears the user-facing gate) than gpt-5.5,
-so it earns the ~80% on merit and easily justifies its small cost premium.
-`gpt-5.5` is the slightly-cheaper
-alternative for the ~20%: cost-sensitive bulk, or an independent second-opinion
-pass.
+**One codex model.** `gpt-5.6-sol` ("sol") is *the* codex pick — the `model` set
+in `~/.codex/config.toml`, so an unqualified codex call is sol. Intel 9 and taste
+7 mean it clears the user-facing gate, so there is no cheaper-but-dumber codex
+tier to fall back to: when sol isn't right for a task, the answer is a *smarter*
+model, not a cheaper one.
 
 ## Route by task shape
 
 | The task is…                                             | Send it to                                              |
 | -------------------------------------------------------- | ------------------------------------------------------- |
-| Bulk / mechanical / clear-spec impl, migrations, data    | **gpt-5.6-sol** — the default codex workhorse (~80% of delegated bulk); token-efficient, smart enough |
-| User-facing: UI, UX, copy, API design (needs taste ≥ 7)  | **fable-5** (best taste) or **opus-5**; **gpt-5.6-sol** now clears the gate (taste 7) as the cheaper option for lighter UI/copy |
-| Hardest unsupervised reasoning (fuzzy spec, deep debug)  | **fable-5** or **gpt-5.6-sol** (both intel 9); sol is the default codex pick |
-| Review of a plan or implementation                       | **fable-5** or **opus-5**; add a **codex** pass (sol by default, or gpt-5.5 as a cheaper 2nd voice) for an independent 2nd read |
+| Bulk / mechanical / clear-spec impl, migrations, data    | **gpt-5.6-sol** — the codex workhorse for delegated bulk; token-efficient, smart enough |
+| User-facing: UI, UX, copy, API design (needs taste ≥ 7)  | **fable-5** (best taste) or **opus-5**; **gpt-5.6-sol** clears the gate (taste 7) as the cheaper option for lighter UI/copy |
+| Hardest unsupervised reasoning (fuzzy spec, deep debug)  | **fable-5** or **gpt-5.6-sol** (both intel 9)            |
+| Review of a plan or implementation                       | **fable-5** or **opus-5**; add a **codex** (sol) pass for an independent 2nd read |
 | Anything else / catch-all                                | **opus-5**                                              |
 
 ## Decision rules
@@ -49,10 +45,11 @@ pass.
   than shipping mediocre work.
 - **When axes conflict for anything that ships: intelligence > taste > cost.**
   Cost is a tie-breaker only.
-- **Taste gate:** never route user-facing work (UI/copy/API design) below taste 7
-  — that rules out gpt-5.5, but **gpt-5.6-sol** (taste 7) now clears it.
+- **Taste gate:** never route user-facing work (UI/copy/API design) below taste 7.
+  Everything in the roster clears it today — the gate is there so a cheaper model
+  added later can't quietly take UI work.
 - **Reviews want a second, independent perspective.** A fable/opus review plus a
-  gpt-5.5 pass catches more than either alone.
+  **codex** pass catches more than either alone.
 
 ## Invocation mechanics
 
@@ -61,12 +58,9 @@ pass.
 - `Agent` tool: `subagent_type` + `model: "fable" | "opus" | "sonnet"`.
 - `Workflow`: `agent(prompt, { model: "fable", ... })`, or `model` on a phase.
 
-**codex models → the codex plugin** (do NOT hand-roll bash wrappers; use the
-plugin). The plugin runs whatever `model` is set in `~/.codex/config.toml` —
-currently **`gpt-5.6-sol`**, so an unqualified codex call = sol. Reach for
-**gpt-5.5** for the ~20% where you want the slightly-cheaper model or an
-independent second voice; pass `-m gpt-5.5` / `--model gpt-5.5` to the codex
-command (or flip the config default) to override for that call.
+**codex → the codex plugin** (do NOT hand-roll bash wrappers; use the plugin).
+The plugin runs whatever `model` is set in `~/.codex/config.toml` — **`gpt-5.6-sol`**
+— so every codex call is sol and no `-m` override is needed.
 
 - `/codex:review [--base <ref>]` — read-only quality assessment / branch review.
 - `/codex:adversarial-review <focus>` — skeptical design review (auth, tradeoffs,
@@ -74,11 +68,11 @@ command (or flip the config default) to override for that call.
 - `/codex:rescue` — subcontract active debugging, multi-file refactor, or an
   implementation loop when a second pass is needed.
 - Async: `/codex:status`, `/codex:result`, `/codex:cancel` (with `--background`).
-- Inside a **Workflow/subagent**, delegate gpt-5.5 work via the
+- Inside a **Workflow/subagent**, delegate codex work via the
   `codex:codex-rescue` agent type or the plugin's native slash commands /
   `codex-cli-runtime` skills — never raw terminal wrappers.
 - **Fallback:** if the codex CLI/plugin isn't installed in this project, substitute
-  a **fable-5** (or **opus-5**) agent for the gpt-5.5 slot and note the swap.
+  a **fable-5** (or **opus-5**) agent for the codex slot and note the swap.
 
 ## Closed-loop QA (optional)
 
@@ -89,9 +83,8 @@ assumptions don't reach the main session unvetted.
 ## Worked example — a 3-stage feature
 
 1. **Plan** the change → **opus-5** (or fable-5) subagent.
-2. **Implement** the clear-spec pieces in parallel → **gpt-5.6-sol** (the default
-   codex pick) via `/codex:rescue` or `codex:codex-rescue` agents; drop to
-   **gpt-5.5** for a cheaper run on the simplest pieces.
+2. **Implement** the clear-spec pieces in parallel → **gpt-5.6-sol** via
+   `/codex:rescue` or `codex:codex-rescue` agents.
 3. **Review** the diff → **fable-5** agent + a **codex** `/codex:review` pass;
    reconcile both. Escalate any rejected fix to a smarter model rather than
    patching blind.
