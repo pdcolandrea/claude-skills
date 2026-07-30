@@ -13,6 +13,7 @@ In a Claude Code session:
 /plugin install screenshot-pr@pdcolandrea-skills
 /plugin install aso-appstore-screenshots@pdcolandrea-skills
 /plugin install orchestrator@pdcolandrea-skills
+/plugin install design-reference@pdcolandrea-skills
 ```
 
 Or from the shell:
@@ -23,6 +24,7 @@ claude plugin install codex-review@pdcolandrea-skills
 claude plugin install screenshot-pr@pdcolandrea-skills
 claude plugin install aso-appstore-screenshots@pdcolandrea-skills
 claude plugin install orchestrator@pdcolandrea-skills
+claude plugin install design-reference@pdcolandrea-skills
 ```
 
 Run `/plugin` with no args to browse and toggle installed skills.
@@ -132,6 +134,41 @@ Trigger it by asking Claude which model should do a task, to "spin up agents" /
 > intelligence, and taste, and routing each task to the cheapest model that clears
 > the bar — is adapted from Theo Browne
 > ([@t3dotgg](https://github.com/t3dotgg)).
+
+### `design-reference`
+
+Section-by-section **design QA** for a web app — two skills that work as a pair.
+
+Tall reference PNGs (20,000+ px) get downsampled ~14× when read directly, so
+pixel-level review is impossible. `design-reference-import` probes a design folder,
+helps you pick 6–10 section boundaries, writes a `design.json` manifest, and slices
+both the desktop and mobile PNG into per-section crops at native resolution.
+
+`design-reference-compare` then **investigates** one section against its crop at
+both viewports: it reads the reference first (to avoid "looks fine" confirmation
+bias), samples computed styles via Playwright MCP, loads the project's design
+tokens, and diffs against a fixed checklist — layout, typography, color,
+imagery, missing/extra elements, console hygiene. Every color and font must trace
+back to a token; the default verdict is **drift until evidence proves a match**.
+Output is a categorized diff plus a punch list of `file:line` fixes.
+
+Trigger it with `/design-reference-import design-context/<screen>` once per design
+folder, then `/design-reference-compare design-context/<screen> <section>` (omit the
+section to list them) before calling any UI work done.
+
+**Requirements**
+
+- **Playwright MCP** connected (the capture engine) and the project's web dev
+  server running.
+- `python3` with **Pillow** for the slicer (`pip3 install --user Pillow`).
+
+It's **repo-agnostic**: live URL, route, dev command, and design-token paths all
+live in each folder's `design.json`, and compare auto-detects the token source
+(Tailwind `globals.css`, `tailwind.config`, a theme module) when the manifest is
+silent. See
+[`skills/design-reference-import/SKILL.md`](skills/design-reference-import/SKILL.md)
+and
+[`skills/design-reference-compare/SKILL.md`](skills/design-reference-compare/SKILL.md).
 
 ## Adding a skill to this marketplace
 

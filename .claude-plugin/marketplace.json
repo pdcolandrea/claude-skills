@@ -37,6 +37,16 @@
       ]
     },
     {
+      "name": "design-reference",
+      "description": "Section-by-section design QA for web apps. design-reference-import slices tall desktop+mobile reference PNGs into readable per-section crops behind a design.json manifest; design-reference-compare then diffs the live site against a section at both viewports via Playwright MCP — sampling computed styles, tracing every color/font back to the project's design tokens, and checking DOM + console hygiene instead of eyeballing.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/design-reference-import",
+        "./skills/design-reference-compare"
+      ]
+    },
+    {
       "name": "orchestrator",
       "description": "Chooses which model runs a delegated task — subagent, parallel fan-out, or Workflow stage — by scoring the work on cost, intelligence, and taste, then routing to the cheapest model that clears the bar (gpt-5.5 via the codex plugin; fable-5 / opus-4.8 / sonnet-5 via the Agent/Workflow model param). Model-routing rubric adapted from Theo Browne (@t3dotgg).",
       "source": "./",
