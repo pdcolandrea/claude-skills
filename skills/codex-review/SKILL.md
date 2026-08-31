@@ -9,9 +9,17 @@ user-invokable: true
 Drives a full codex review cycle so the user doesn't have to babysit it:
 **review → fix → re-review**, looping until codex comes back clean.
 
-> **Script paths.** Commands below are written relative to this skill's directory
-> (`scripts/…`). Run them from the skill root, or prefix with the skill's absolute
-> path if your harness invokes from elsewhere.
+> **Where to run these.** Every script resolves its target from the **current
+> working directory**, so run them from the root of the repo under review and
+> call them by absolute path:
+>
+> ```bash
+> cd <repo> && ~/.claude/skills/codex-review/scripts/local-review.sh
+> ```
+>
+> `cd`-ing into the skill directory first is the single most common way to break
+> this — the scripts then look for a git repo inside `~/.claude/skills` and exit
+> `VERDICT=ERROR reason=not-a-git-repo`.
 
 ## Two modes — pick before starting
 
@@ -38,21 +46,64 @@ the `VERDICT=` contract.
 Run **in the background** (it takes minutes):
 
 ```bash
-scripts/local-review.sh                 # branch vs auto-detected base
-scripts/local-review.sh --base master   # explicit base
-scripts/local-review.sh --uncommitted   # working-tree changes only
+S=~/.claude/skills/codex-review/scripts/local-review.sh
+$S                                  # branch vs auto-detected base
+$S --base master                    # explicit base
+$S --commit <sha>                   # one commit
+$S --uncommitted                    # working-tree changes only
+$S "focus on the refund path"       # focused, auto base
+$S --base master "focus on locking" # focused + explicit scope
 ```
 
-Extra args after the flags become custom review instructions (e.g. a focus
-area). Output is the review body; **the last line is always the verdict**:
+A plain quoted argument is a **focus brief**, and it composes with every scope
+flag. (Mechanically it can't be passed through: `codex review` rejects
+`[PROMPT]` alongside `--base`/`--commit`/`--uncommitted`, because the positional
+prompt *is* the scope-instruction slot. The script therefore drops the flag and
+folds the scope into the prompt prose instead. Same output contract either way —
+don't "fix" this by calling `codex review --base X "brief"` yourself, it errors.)
+
+**`--uncommitted` reviews the entire working tree, not just your edits.** In a
+shared checkout that means another session's in-flight work comes back as
+findings. Prefer a worktree, or triage findings by file ownership before fixing
+anything — and when every remaining finding belongs to someone else, that's the
+loop's stop condition, not a reason to iterate.
+
+Output is the review body; **the last line is always the verdict**:
 
 - `VERDICT=CLEAN` → **Done** (below).
 - `VERDICT=FINDINGS count=N` → Step L2. Findings look like
-  `- [P1] title — path:lines` with a body underneath.
-- `VERDICT=ERROR …` → read the printed tail of
-  `$(git rev-parse --git-dir)/codex-local-review.log`. An instant exit-1 with a
-  sandbox complaint usually means the shell it ran in blocks codex's own
-  sandbox — re-run outside the sandbox. Report unresolvable errors to the user.
+  `- [P1] title — path:lines` with a body underneath (P1 must-fix … P3 optional).
+- `VERDICT=UNKNOWN reason=unrecognised-findings-format` → codex returned
+  something that looks like findings but didn't match the expected bullet shape,
+  i.e. its output format changed. **Do not treat this as clean.** Read the body
+  printed above the verdict, act on it by hand, and fix the parser in
+  `scripts/local-review.sh` (the `count=` / `drift=` greps near the end).
+- `VERDICT=ERROR reason=stalled …` → codex went quiet for `CODEX_LOCAL_STALL`
+  seconds (default 600) or blew the `CODEX_LOCAL_MAX` wall clock (default 3600)
+  and was killed. Stalls are common enough to expect (~25% historically); just
+  re-run. Raise the env vars for a genuinely huge diff.
+- `VERDICT=ERROR …` (anything else) → read the printed tail of the log (its path
+  is echoed on the line above the verdict). An instant exit-1 with a sandbox
+  complaint usually means the shell it ran in blocks codex's own sandbox —
+  re-run outside the sandbox. Report unresolvable errors to the user.
+
+### When to use the companion plugin instead
+
+`codex review` is the *built-in* reviewer: fixed stance, fixed format. For an
+adversarial second opinion — a skeptic explicitly trying to break the change,
+with structured severities and a confidence score per finding — use the codex
+plugin's companion script, which also supports real background jobs:
+
+```bash
+C=$(ls -d ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs | tail -1)
+node "$C" adversarial-review --background --base <sha> --scope branch "<focus brief>"
+node "$C" status <job-id>      # poll; treat >10 min of log silence as a stall
+node "$C" result <job-id>      # the report
+```
+
+Its verdict vocabulary is different (`Verdict: approve | needs-attention`, and
+`- [critical|high|medium|low]` bullets) — translate before feeding it back into
+this skill's loop. Glob the version directory as above; never pin one.
 
 ### Step L2 — fix and loop
 
@@ -60,6 +111,13 @@ Same policy as the GitHub loop: **P1/P2** fix unless clearly false-positive;
 **P3** judgment; deliberate skips get noted, and if *every* remaining finding is
 a deliberate skip, stop and surface them instead of looping. Run the repo's
 verify gate, commit, then **re-run Step L1**. Cap at **6 iterations**.
+
+Keep the focus brief (if any) identical across iterations — changing it mid-loop
+changes what "clean" means, so a pass on round 3 wouldn't cover round 1's scope.
+
+Stop the loop, don't re-run, when: the verdict is `UNKNOWN` (surface the body and
+the parser bug), every remaining finding is a deliberate skip, or every remaining
+finding belongs to another session's files in a shared checkout.
 
 ### Done (local)
 
